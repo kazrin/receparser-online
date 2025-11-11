@@ -10,11 +10,48 @@ from pathlib import Path
 # Use os.path for better Streamlit Cloud compatibility
 app_dir = os.path.dirname(os.path.abspath(__file__))
 receparser_parent_path = os.path.join(app_dir, "receparser")
+receparser_receparser_path = os.path.join(receparser_parent_path, "receparser")
+
+# Debug logging
+print(f"[DEBUG] __file__: {__file__}")
+print(f"[DEBUG] app_dir: {app_dir}")
+print(f"[DEBUG] receparser_parent_path: {receparser_parent_path}")
+print(f"[DEBUG] receparser_receparser_path: {receparser_receparser_path}")
+print(f"[DEBUG] receparser_parent_path exists: {os.path.exists(receparser_parent_path)}")
+print(f"[DEBUG] receparser_receparser_path exists: {os.path.exists(receparser_receparser_path)}")
+print(f"[DEBUG] Current sys.path (first 5): {sys.path[:5]}")
+
 if receparser_parent_path not in sys.path:
     sys.path.insert(0, receparser_parent_path)
+    print(f"[DEBUG] Added to sys.path: {receparser_parent_path}")
+else:
+    print(f"[DEBUG] Already in sys.path: {receparser_parent_path}")
+
+print(f"[DEBUG] sys.path after modification (first 5): {sys.path[:5]}")
+
+# Try to list files in receparser directory
+if os.path.exists(receparser_parent_path):
+    try:
+        files = os.listdir(receparser_parent_path)
+        print(f"[DEBUG] Files in receparser_parent_path: {files}")
+    except Exception as e:
+        print(f"[DEBUG] Error listing files: {e}")
 
 # Import from receparser.receparser (__init__.py exports MonthlyRece)
-from receparser.receparser import MonthlyRece
+try:
+    from receparser.receparser import MonthlyRece
+    print(f"[DEBUG] Successfully imported MonthlyRece")
+except ImportError as e:
+    print(f"[DEBUG] ImportError: {e}")
+    print(f"[DEBUG] Trying alternative import methods...")
+    # Try alternative import
+    try:
+        sys.path.insert(0, receparser_receparser_path)
+        from core import MonthlyRece
+        print(f"[DEBUG] Successfully imported from core directly")
+    except ImportError as e2:
+        print(f"[DEBUG] Alternative import also failed: {e2}")
+        raise
 
 # Helper function to get patient info from RE record
 def get_rece_info(rece):
