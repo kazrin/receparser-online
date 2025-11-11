@@ -59,55 +59,58 @@ if uploaded_file is not None:
                 st.success(f"✅ {len(chart_numbers)}件のレセプトデータを読み込みました")
                 
                 # Helper function to get patient info from RE record
-                def get_patient_info(chart_num):
-                    rece_list = monthly_rece[chart_num]
-                    if rece_list:
-                        rece = rece_list[0]
-                        # Get RE record using __getitem__
-                        try:
-                            re_records = rece['RE']
-                            if isinstance(re_records, list) and len(re_records) > 0:
-                                re_record = re_records[0]
+                def get_rece_info(rece):
+                    """Get patient info from a Rece object"""
+                    try:
+                        re_records = rece['RE']
+                        if isinstance(re_records, list) and len(re_records) > 0:
+                            re_record = re_records[0]
+                            return {
+                                '氏名': re_record.get('氏名', ''),
+                                'カタカナ氏名': re_record.get('カタカナ氏名', ''),
+                                '生年月日': re_record.get('生年月日', ''),
+                                '男女区分': re_record.get('男女区分', ''),
+                                '診療年月': re_record.get('診療年月', ''),
+                                'レセプト番号': re_record.get('レセプト番号', ''),
+                            }
+                    except (KeyError, TypeError):
+                        # Fallback: search in rece_list
+                        for record in rece.rece_list:
+                            record_type = record.get('レコード識別情報') or record.get('レコード識別番号')
+                            if record_type == 'RE':
                                 return {
-                                    '氏名': re_record.get('氏名', ''),
-                                    'カタカナ氏名': re_record.get('カタカナ氏名', ''),
-                                    '生年月日': re_record.get('生年月日', ''),
-                                    '男女区分': re_record.get('男女区分', ''),
-                                    '診療年月': re_record.get('診療年月', ''),
+                                    '氏名': record.get('氏名', ''),
+                                    'カタカナ氏名': record.get('カタカナ氏名', ''),
+                                    '生年月日': record.get('生年月日', ''),
+                                    '男女区分': record.get('男女区分', ''),
+                                    '診療年月': record.get('診療年月', ''),
+                                    'レセプト番号': record.get('レセプト番号', ''),
                                 }
-                        except (KeyError, TypeError):
-                            # Fallback: search in rece_list
-                            for record in rece.rece_list:
-                                record_type = record.get('レコード識別情報') or record.get('レコード識別番号')
-                                if record_type == 'RE':
-                                    return {
-                                        '氏名': record.get('氏名', ''),
-                                        'カタカナ氏名': record.get('カタカナ氏名', ''),
-                                        '生年月日': record.get('生年月日', ''),
-                                        '男女区分': record.get('男女区分', ''),
-                                        '診療年月': record.get('診療年月', ''),
-                                    }
                     return {
                         '氏名': '',
                         'カタカナ氏名': '',
                         '生年月日': '',
                         '男女区分': '',
                         '診療年月': '',
+                        'レセプト番号': '',
                     }
                 
-                # Build patient list
+                # Build patient list - each receipt as a separate row
                 patient_list = []
                 for chart_num in chart_numbers:
-                    info = get_patient_info(chart_num)
-                    patient_list.append({
-                        'カルテ番号': chart_num if chart_num else '未設定',
-                        '氏名': info['氏名'],
-                        'カタカナ氏名': info['カタカナ氏名'],
-                        '生年月日': info['生年月日'],
-                        '男女区分': info['男女区分'],
-                        '診療年月': info['診療年月'],
-                        'レセプト数': len(monthly_rece[chart_num]),
-                    })
+                    rece_list = monthly_rece[chart_num]
+                    for rece_idx, rece in enumerate(rece_list):
+                        info = get_rece_info(rece)
+                        patient_list.append({
+                            'カルテ番号': chart_num if chart_num else '未設定',
+                            'レセプト番号': info['レセプト番号'],
+                            'レセプトインデックス': rece_idx,
+                            '氏名': info['氏名'],
+                            'カタカナ氏名': info['カタカナ氏名'],
+                            '生年月日': info['生年月日'],
+                            '男女区分': info['男女区分'],
+                            '診療年月': info['診療年月'],
+                        })
                 
                 patient_df = pd.DataFrame(patient_list)
                 
@@ -116,16 +119,17 @@ if uploaded_file is not None:
                 
                 # Search box
                 search_query = st.text_input(
-                    "🔍 患者を検索（氏名、カタカナ氏名、カルテ番号で検索）",
+                    "🔍 レセプトを検索（氏名、カタカナ氏名、カルテ番号、レセプト番号で検索）",
                     placeholder="検索キーワードを入力..."
                 )
                 
-                # Filter patients based on search
+                # Filter receipts based on search
                 if search_query:
                     mask = (
                         patient_df['氏名'].str.contains(search_query, case=False, na=False) |
                         patient_df['カタカナ氏名'].str.contains(search_query, case=False, na=False) |
-                        patient_df['カルテ番号'].astype(str).str.contains(search_query, case=False, na=False)
+                        patient_df['カルテ番号'].astype(str).str.contains(search_query, case=False, na=False) |
+                        patient_df['レセプト番号'].astype(str).str.contains(search_query, case=False, na=False)
                     )
                     filtered_df = patient_df[mask]
                 else:
@@ -133,10 +137,10 @@ if uploaded_file is not None:
                 
                 # Display patient list
                 if len(filtered_df) > 0:
-                    st.info(f"📊 {len(filtered_df)}件の患者が見つかりました（全{len(patient_df)}件中）")
+                    st.info(f"📊 {len(filtered_df)}件のレセプトが見つかりました（全{len(patient_df)}件中）")
                     
                     # Display patient table
-                    display_df = filtered_df[['カルテ番号', '氏名', 'カタカナ氏名', '生年月日', '男女区分', '診療年月', 'レセプト数']].copy()
+                    display_df = filtered_df[['カルテ番号', 'レセプト番号', '氏名', 'カタカナ氏名', '生年月日', '男女区分', '診療年月']].copy()
                     st.dataframe(
                         display_df,
                         width='stretch',
@@ -146,7 +150,9 @@ if uploaded_file is not None:
                     
                     # Patient selection
                     if len(filtered_df) == 1:
-                        selected_chart = filtered_df.iloc[0]['カルテ番号']
+                        selected_row = filtered_df.iloc[0]
+                        selected_chart = selected_row['カルテ番号']
+                        selected_rece_idx = selected_row['レセプトインデックス']
                     else:
                         # Create selection options
                         patient_options = []
@@ -154,32 +160,43 @@ if uploaded_file is not None:
                             row = filtered_df.iloc[idx]
                             name = row['氏名'] if row['氏名'] else '（氏名なし）'
                             chart = row['カルテ番号']
-                            option_text = f"{chart} - {name}"
-                            patient_options.append((idx, option_text, chart))
+                            rece_num = row['レセプト番号'] if row['レセプト番号'] else f"レセプト{row['レセプトインデックス']+1}"
+                            option_text = f"{chart} - {name} (レセプト番号: {rece_num})"
+                            patient_options.append((idx, option_text, chart, row['レセプトインデックス']))
                         
                         selected_option = st.selectbox(
-                            "患者を選択",
+                            "レセプトを選択",
                             range(len(patient_options)),
                             format_func=lambda x: patient_options[x][1]
                         )
                         selected_chart = patient_options[selected_option][2]
+                        selected_rece_idx = patient_options[selected_option][3]
                     
                 else:
-                    st.warning("検索条件に一致する患者が見つかりませんでした。")
+                    st.warning("検索条件に一致するレセプトが見つかりませんでした。")
                     selected_chart = None
+                    selected_rece_idx = None
                 
-                if selected_chart is not None and selected_chart != '未設定':
+                if selected_chart is not None and selected_chart != '未設定' and selected_rece_idx is not None:
                     st.divider()
-                    st.header(f"📋 患者データ: {selected_chart}")
                     
                     # Get Rece objects for selected chart number
                     # Convert '未設定' back to empty string for lookup
                     chart_key = '' if selected_chart == '未設定' else selected_chart
                     rece_list = monthly_rece[chart_key]
                     
-                    if rece_list:
+                    # Get the specific receipt
+                    rece = rece_list[selected_rece_idx]
+                    
+                    # Get patient info for display
+                    patient_info = get_rece_info(rece)
+                    
+                    # Display header with receipt number
+                    rece_num = patient_info['レセプト番号'] if patient_info['レセプト番号'] else f"レセプト{selected_rece_idx+1}"
+                    st.header(f"📋 患者データ: {selected_chart} (レセプト番号: {rece_num})")
+                    
+                    if rece:
                         # Display patient info
-                        patient_info = get_patient_info(chart_key)
                         if patient_info['氏名']:
                             col1, col2, col3 = st.columns(3)
                             with col1:
@@ -191,29 +208,22 @@ if uploaded_file is not None:
                                 with col3:
                                     st.metric("生年月日", patient_info['生年月日'])
                         
-                        # Handle multiple receipts
-                        if len(rece_list) > 1:
-                            st.info(f"⚠️ この患者には{len(rece_list)}件のレセプトがあります。すべてのレセプトのデータを統合して表示します。")
-                        
-                        # Collect all record types from all receipts
+                        # Collect all record types from the selected receipt
                         all_record_types = set()
                         all_records_by_type = {}
                         
-                        for rece in rece_list:
-                            # Get available record types
-                            for record in rece.rece_list:
-                                record_type = record.get('レコード識別情報') or record.get('レコード識別番号')
-                                if record_type:
-                                    all_record_types.add(record_type)
-                                    if record_type not in all_records_by_type:
-                                        all_records_by_type[record_type] = []
-                                    all_records_by_type[record_type].append(record)
+                        # Get available record types from the selected receipt
+                        for record in rece.rece_list:
+                            record_type = record.get('レコード識別情報') or record.get('レコード識別番号')
+                            if record_type:
+                                all_record_types.add(record_type)
+                                if record_type not in all_records_by_type:
+                                    all_records_by_type[record_type] = []
+                                all_records_by_type[record_type].append(record)
                         
                         record_types = sorted(list(all_record_types))
                         
-                        if record_types:
-                            st.subheader("📊 全レコードタイプのデータ")
-                            
+                        if record_types:                            
                             # Display all record types vertically
                             for record_type in record_types:
                                 records = all_records_by_type[record_type]
@@ -224,15 +234,6 @@ if uploaded_file is not None:
                                     
                                     # Convert to DataFrame
                                     df = pd.DataFrame(records)
-                                    
-                                    # Display statistics
-                                    col1, col2, col3 = st.columns(3)
-                                    with col1:
-                                        st.metric("レコード数", len(records))
-                                    with col2:
-                                        st.metric("カラム数", len(df.columns))
-                                    with col3:
-                                        st.metric("データ行数", len(df))
                                     
                                     # Display DataFrame
                                     st.dataframe(df, width='stretch', height=400)
@@ -254,27 +255,6 @@ if uploaded_file is not None:
                                     st.info(f"レコードタイプ '{record_type}' のデータがありません。")
                                     st.divider()
                             
-                            # Summary section
-                            with st.expander("📈 全レコードタイプの概要"):
-                                summary_data = []
-                                for rt in record_types:
-                                    recs = all_records_by_type.get(rt, [])
-                                    summary_data.append({
-                                        "レコードタイプ": rt,
-                                        "レコード数": len(recs),
-                                        "カラム数": len(recs[0].keys()) if recs else 0
-                                    })
-                                summary_df = pd.DataFrame(summary_data)
-                                st.dataframe(summary_df, width='stretch')
-                                
-                                # Download all data as CSV
-                                all_data_csv = summary_df.to_csv(index=False, encoding='utf-8-sig')
-                                st.download_button(
-                                    label="📥 概要をCSVとしてダウンロード",
-                                    data=all_data_csv,
-                                    file_name=f"{selected_chart}_summary.csv",
-                                    mime="text/csv"
-                                )
                         else:
                             st.warning("レコードタイプが見つかりませんでした。")
                     else:
