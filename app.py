@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 # Add receparser directory to Python path
-receparser_path = Path(__file__).parent / "receparser"
+receparser_path = Path(__file__).parent / "receparser" / "receparser"
 if str(receparser_path) not in sys.path:
     sys.path.insert(0, str(receparser_path))
 

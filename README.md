@@ -16,13 +16,7 @@
 ### 依存関係のインストール
 
 ```bash
-pip install -e .
-```
-
-または、直接依存関係をインストール：
-
-```bash
-pip install streamlit pandas
+uv pip install -e .
 ```
 
 ## 使い方
@@ -30,7 +24,7 @@ pip install streamlit pandas
 ### アプリケーションの起動
 
 ```bash
-streamlit run app.py
+uv run streamlit run app.py
 ```
 
 ブラウザが自動的に開き、アプリケーションが表示されます。
@@ -38,18 +32,29 @@ streamlit run app.py
 ### レセプトファイルの可視化
 
 1. 左側のサイドバーからレセプトファイル（CSV形式、Shift-JISエンコーディング）をアップロード
-2. レセプトタイプ（DPCまたは医科）を選択
-3. カルテ番号を選択
-4. レコードタイプ（RE, HO, SBなど）を選択
-5. データをテーブル形式で確認し、必要に応じてCSVとしてダウンロード
+2. レセプトタイプ（医科またはDCP）を選択
 
-## 対応レコードタイプ
+## 使用ライブラリ
 
-- **RE**: レセプト共通レコード
-- **HO**: 公費レコード
-- **SB**: 傷病名レコード
-- **KO**: コメントレコード
-- その他、レセプトファイルに含まれるすべてのレコードタイプ
+このプロジェクトは以下のライブラリを使用しています：
+
+- **[receparser](https://github.com/stagira13/receparser)** - 電子レセプトファイルを読み込むためのパーサライブラリ
+  - ライセンス: MIT License
+  - 著作権: Copyright (c) 2018 Stagira
+  - 使用バージョン: [334246e](https://github.com/stagira13/receparser/commit/334246efd4c3d5b14b566096b39476c16863b719) (commit: `334246efd4c3d5b14b566096b39476c16863b719`)
+
+receparserはプロジェクト内の`receparser/`ディレクトリから直接読み込まれます。
+streamlitにアプリをデプロイするため、submoduleではなく、ディレクトリ/ファイルとして配置しています。
+
+## ライセンス
+
+このプロジェクトはMITライセンスの下で公開されています。
+
+### サードパーティライブラリのライセンス
+
+#### receparser
+
+ライセンス全文は [`receparser/LICENSE.txt`](receparser/LICENSE.txt) を参照してください。
 
 ## 参考情報
 
