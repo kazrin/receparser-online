@@ -3,6 +3,7 @@ import pandas as pd
 import tempfile
 import os
 import sys
+import json
 from pathlib import Path
 
 # Add receparser directory to Python path
@@ -11,6 +12,44 @@ if str(receparser_path) not in sys.path:
     sys.path.insert(0, str(receparser_path))
 
 from receparser import MonthlyRece
+
+# Helper function to get patient info from RE record
+def get_rece_info(rece):
+    """Get patient info from a Rece object"""
+    try:
+        re_records = rece['RE']
+        if isinstance(re_records, list) and len(re_records) > 0:
+            re_record = re_records[0]
+            return {
+                '氏名': re_record.get('氏名', ''),
+                'カタカナ氏名': re_record.get('カタカナ氏名', ''),
+                '生年月日': re_record.get('生年月日', ''),
+                '男女区分': re_record.get('男女区分', ''),
+                '診療年月': re_record.get('診療年月', ''),
+                'レセプト番号': re_record.get('レセプト番号', ''),
+            }
+    except (KeyError, TypeError):
+        # Fallback: search in rece_list
+        for record in rece.rece_list:
+            record_type = record.get('レコード識別情報') or record.get('レコード識別番号')
+            if record_type == 'RE':
+                return {
+                    '氏名': record.get('氏名', ''),
+                    'カタカナ氏名': record.get('カタカナ氏名', ''),
+                    '生年月日': record.get('生年月日', ''),
+                    '男女区分': record.get('男女区分', ''),
+                    '診療年月': record.get('診療年月', ''),
+                    'レセプト番号': record.get('レセプト番号', ''),
+                }
+    return {
+        '氏名': '',
+        'カタカナ氏名': '',
+        '生年月日': '',
+        '男女区分': '',
+        '診療年月': '',
+        'レセプト番号': '',
+    }
+
 
 st.set_page_config(
     page_title="Receparser Online",
@@ -58,42 +97,6 @@ if uploaded_file is not None:
             else:
                 st.success(f"✅ {len(chart_numbers)}件のレセプトデータを読み込みました")
                 
-                # Helper function to get patient info from RE record
-                def get_rece_info(rece):
-                    """Get patient info from a Rece object"""
-                    try:
-                        re_records = rece['RE']
-                        if isinstance(re_records, list) and len(re_records) > 0:
-                            re_record = re_records[0]
-                            return {
-                                '氏名': re_record.get('氏名', ''),
-                                'カタカナ氏名': re_record.get('カタカナ氏名', ''),
-                                '生年月日': re_record.get('生年月日', ''),
-                                '男女区分': re_record.get('男女区分', ''),
-                                '診療年月': re_record.get('診療年月', ''),
-                                'レセプト番号': re_record.get('レセプト番号', ''),
-                            }
-                    except (KeyError, TypeError):
-                        # Fallback: search in rece_list
-                        for record in rece.rece_list:
-                            record_type = record.get('レコード識別情報') or record.get('レコード識別番号')
-                            if record_type == 'RE':
-                                return {
-                                    '氏名': record.get('氏名', ''),
-                                    'カタカナ氏名': record.get('カタカナ氏名', ''),
-                                    '生年月日': record.get('生年月日', ''),
-                                    '男女区分': record.get('男女区分', ''),
-                                    '診療年月': record.get('診療年月', ''),
-                                    'レセプト番号': record.get('レセプト番号', ''),
-                                }
-                    return {
-                        '氏名': '',
-                        'カタカナ氏名': '',
-                        '生年月日': '',
-                        '男女区分': '',
-                        '診療年月': '',
-                        'レセプト番号': '',
-                    }
                 
                 # Build patient list - each receipt as a separate row
                 patient_list = []
@@ -196,6 +199,46 @@ if uploaded_file is not None:
                     st.header(f"📋 患者データ: {selected_chart} (レセプト番号: {rece_num})")
                     
                     if rece:
+                        # Export all records as JSON or Markdown (foldable, collapsed by default)
+                        with st.expander("📤 全レコードをエクスポート (JSON/Markdown)", expanded=False):
+                            export_format = st.radio(
+                                "エクスポート形式",
+                                ["JSON", "Markdown"],
+                                horizontal=True,
+                                help="全レコードをJSONまたはMarkdown形式でコピーできます"
+                            )
+                            
+                            # Collect all records
+                            all_records_data = {}
+                            for record in rece.rece_list:
+                                record_type = record.get('レコード識別情報') or record.get('レコード識別番号')
+                                if record_type:
+                                    if record_type not in all_records_data:
+                                        all_records_data[record_type] = []
+                                    all_records_data[record_type].append(record)
+                            
+                            if export_format == "JSON":
+                                # Convert to JSON
+                                json_output = json.dumps(all_records_data, ensure_ascii=False, indent=2)
+                                st.code(json_output, language='json')
+                            else:
+                                # Convert to Markdown
+                                markdown_lines = []
+                                markdown_lines.append(f"# 患者データ: {selected_chart} (レセプト番号: {rece_num})\n")
+                                
+                                for record_type, records in sorted(all_records_data.items()):
+                                    markdown_lines.append(f"## {record_type}レコード\n")
+                                    for idx, record in enumerate(records, 1):
+                                        markdown_lines.append(f"### {record_type}レコード {idx}\n")
+                                        markdown_lines.append("| 項目 | 値 |\n")
+                                        markdown_lines.append("|------|-----|\n")
+                                        for key, value in record.items():
+                                            if key:  # Skip None keys
+                                                markdown_lines.append(f"| {key} | {value if value else ''} |\n")
+                                        markdown_lines.append("\n")
+                                
+                                markdown_output = "".join(markdown_lines)
+                                st.code(markdown_output, language='markdown')
                         # Display patient info
                         if patient_info['氏名']:
                             col1, col2, col3 = st.columns(3)
