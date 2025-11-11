@@ -7,14 +7,14 @@ import json
 from pathlib import Path
 
 # Add receparser directory to Python path
-# Use absolute path resolution for Streamlit Cloud compatibility
-receparser_parent_path = Path(__file__).resolve().parent / "receparser"
-receparser_parent_str = str(receparser_parent_path)
-if receparser_parent_str not in sys.path:
-    sys.path.insert(0, receparser_parent_str)
+# Use os.path for better Streamlit Cloud compatibility
+app_dir = os.path.dirname(os.path.abspath(__file__))
+receparser_parent_path = os.path.join(app_dir, "receparser")
+if receparser_parent_path not in sys.path:
+    sys.path.insert(0, receparser_parent_path)
 
-# Import from receparser.receparser.core to handle relative imports correctly
-from receparser.receparser.core import MonthlyRece
+# Import from receparser.receparser (__init__.py exports MonthlyRece)
+from receparser.receparser import MonthlyRece
 
 # Helper function to get patient info from RE record
 def get_rece_info(rece):
