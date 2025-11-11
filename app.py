@@ -235,6 +235,9 @@ if uploaded_file is not None:
                                     # Convert to DataFrame
                                     df = pd.DataFrame(records)
                                     
+                                    # Fix column names: convert None to empty string and ensure all are strings
+                                    df.columns = [str(col) if col is not None else '' for col in df.columns]
+                                    
                                     # Display DataFrame
                                     st.dataframe(df, width='stretch', height=400)
                                     
