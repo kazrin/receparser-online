@@ -7,11 +7,11 @@ import json
 from pathlib import Path
 
 # Add receparser directory to Python path
-receparser_path = Path(__file__).parent / "receparser" / "receparser"
-if str(receparser_path) not in sys.path:
-    sys.path.insert(0, str(receparser_path))
+receparser_parent_path = Path(__file__).parent / "receparser"
+if str(receparser_parent_path) not in sys.path:
+    sys.path.insert(0, str(receparser_parent_path))
 
-from receparser import MonthlyRece
+from receparser.receparser import MonthlyRece
 
 # Helper function to get patient info from RE record
 def get_rece_info(rece):
