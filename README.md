@@ -1,6 +1,6 @@
-# Receparser Online
+# Receparser Online Desktop App
 
-電子レセプトファイルをブラウザ上で可視化するStreamlitアプリケーションです。
+電子レセプトファイルを可視化するStreamlitデスクトップアプリケーションです。
 
 ## 機能
 
@@ -10,54 +10,140 @@
 - レコードタイプ（RE, HO, SBなど）ごとのデータ可視化
 - pandas DataFrame形式でのデータ表示
 - CSV形式でのデータダウンロード
+- JSON/Markdown形式でのエクスポート
+
+## クイックスタート
+
+```bash
+# 依存関係のインストール
+npm install
+
+# Streamlitアプリのビルド
+npm run dump streamlit_app
+
+# プレビュー（開発モード）
+npm run serve
+
+# デスクトップアプリの配布用パッケージ作成（Mac）
+npm run dist -- --mac
+```
 
 ## セットアップ
+
+### 必要な環境
+
+- Node.js (v16以上)
+- npm
 
 ### 依存関係のインストール
 
 ```bash
-uv pip install -e .
+npm install
 ```
+
+## ビルドと実行
+
+### 1. Streamlitアプリのビルド
+
+Streamlitアプリをデスクトップアプリ用にビルドします：
+
+```bash
+npm run dump streamlit_app
+```
+
+このコマンドは以下を実行します：
+- `streamlit_app`ディレクトリを`build/streamlit_app`にコピー
+- Pyodideランタイムと必要なパッケージをダウンロード
+- Electronアプリのビルドファイルを準備
+
+### 2. プレビュー（開発モード）
+
+ビルドしたアプリをプレビューします：
+
+```bash
+npm run serve
+```
+
+Electronウィンドウが開き、アプリが表示されます。
+
+### 3. デスクトップアプリの配布用パッケージ作成
+
+#### Mac用
+
+```bash
+npm run dist -- --mac
+```
+
+#### Windows用
+
+```bash
+npm run dist -- --win
+```
+
+#### Linux用
+
+```bash
+npm run dist -- --linux
+```
+
+ビルドされたアプリは`dist/`ディレクトリに出力されます。
 
 ## 使い方
 
-### アプリケーションの起動
+1. **アプリを起動**
+   - ビルドしたアプリ（`.app`、`.exe`、`.dmg`など）を起動します
 
-```bash
-uv run streamlit run app.py
+2. **レセプトファイルをアップロード**
+   - 左側のサイドバーからレセプトファイル（CSV形式、Shift-JISエンコーディング）をアップロードします
+
+3. **レセプトタイプを選択**
+   - DPCレセプトまたは医科レセプトを選択します
+
+4. **患者を検索・選択**
+   - 検索ボックスで氏名、カタカナ氏名、カルテ番号、レセプト番号で検索できます
+   - 検索結果から表示したいレセプトを選択します
+
+5. **データを確認・ダウンロード**
+   - レコードタイプごとにデータが表示されます
+   - 各レコードタイプをCSVとしてダウンロードできます
+   - 全レコードをJSONまたはMarkdown形式でエクスポートできます
+
+## プロジェクト構造
+
+```
+receparser-online/
+├── streamlit_app/          # Streamlitアプリケーション
+│   ├── streamlit_app.py    # メインアプリケーション
+│   └── receparser/         # receparserライブラリ
+│       └── receparser/
+│           ├── core.py     # コア機能
+│           ├── codes/      # レコードコード定義
+│           └── utils.py    # ユーティリティ関数
+├── build/                  # ビルドアーティファクト（自動生成）
+├── dist/                   # 配布用パッケージ（自動生成）
+├── package.json            # Node.js依存関係
+├── requirements.txt        # Python依存関係
+└── README.md              # このファイル
 ```
 
-ブラウザが自動的に開き、アプリケーションが表示されます。
+## 技術スタック
 
-### レセプトファイルの可視化
+- **Streamlit**: Webアプリケーションフレームワーク
+- **@stlite/desktop**: Streamlitをデスクトップアプリ化
+- **Electron**: デスクトップアプリフレームワーク
+- **Pyodide**: ブラウザでPythonを実行
+- **receparser**: 電子レセプトファイルパーサーライブラリ
 
-1. 左側のサイドバーからレセプトファイル（CSV形式、Shift-JISエンコーディング）をアップロード
-2. レセプトタイプ（医科またはDCP）を選択
+## 注意事項
 
-## 使用ライブラリ
-
-このプロジェクトは以下のライブラリを使用しています：
-
-- **[receparser](https://github.com/stagira13/receparser)** - 電子レセプトファイルを読み込むためのパーサライブラリ
-  - ライセンス: MIT License
-  - 著作権: Copyright (c) 2018 Stagira
-  - 使用バージョン: [334246e](https://github.com/stagira13/receparser/commit/334246efd4c3d5b14b566096b39476c16863b719) (commit: `334246efd4c3d5b14b566096b39476c16863b719`)
-
-receparserはプロジェクト内の`receparser/`ディレクトリから直接読み込まれます。
-streamlitにアプリをデプロイするため、submoduleではなく、ディレクトリ/ファイルとして配置しています。
+- レセプトファイルはShift-JISエンコーディングのCSV形式である必要があります
+- 大きなファイルの処理には時間がかかる場合があります
+- アップロードされたファイルは一時的に保存されますが、アプリ終了時に削除されます
+- `japanera`パッケージはPyodideで利用可能な場合のみインストールされます。利用できない場合は、元号変換機能が制限される可能性があります
+- `receparser`ライブラリは`streamlit_app/receparser`配下に直接配置されており、デスクトップアプリ環境で自動的にインポートされます
 
 ## ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。
-
-### サードパーティライブラリのライセンス
-
-#### receparser
-
-ライセンス全文は [`receparser/LICENSE.txt`](receparser/LICENSE.txt) を参照してください。
-
-## 参考情報
-
-- [receparser GitHub](https://github.com/stagira13/receparser)
-- [レセプト仕様一覧](https://shinryohoshu.mhlw.go.jp/shinryohoshu/receMenu/doReceInfo)
+receparserライブラリはMITライセンスです。
+詳細は`streamlit_app/receparser/LICENSE.txt`を参照してください。
 

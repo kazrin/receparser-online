@@ -1,8 +1,0 @@
-﻿__pycache__/
-*.py[cod]
-*$py.class
-.ipynb_checkpoints/
-dpcsample_original.csv
-*.DS_Store
-data/
-.DS_Store

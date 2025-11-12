@@ -5,71 +5,21 @@ import os
 import sys
 import json
 
-# Add receparser directory to Python path
-# Use os.path for better Streamlit Cloud compatibility
-app_dir = os.path.dirname(os.path.abspath(__file__))
-receparser_parent_path = os.path.join(app_dir, "receparser")
-receparser_receparser_path = os.path.join(receparser_parent_path, "receparser")
-
-if receparser_parent_path not in sys.path:
-    sys.path.insert(0, receparser_parent_path)
-
-# Import from receparser.receparser (__init__.py exports MonthlyRece)
-# Since receparser/receparser/__init__.py uses 'from receparser.core import',
-# we need to ensure receparser package is properly recognized
+# receparser.receparserからインポート
+# デスクトップアプリ環境ではstreamlit_app配下にreceparserがある
 try:
     from receparser.receparser import MonthlyRece
 except ImportError:
-    # Try importing directly from receparser.receparser.core
+    # フォールバック: streamlit_app配下からインポート
     try:
-        from receparser.receparser.core import MonthlyRece
-    except ImportError:
-        # Try using importlib to load modules manually
-        import importlib.util
-        
-        # First, load dpc_code and ika_code modules
-        dpc_code_path = os.path.join(receparser_receparser_path, "codes", "dpc_code.py")
-        ika_code_path = os.path.join(receparser_receparser_path, "codes", "ika_code.py")
-        
-        # Create parent modules in sys.modules
-        if "receparser" not in sys.modules:
-            import types
-            sys.modules["receparser"] = types.ModuleType("receparser")
-        if "receparser.receparser" not in sys.modules:
-            import types
-            sys.modules["receparser.receparser"] = types.ModuleType("receparser.receparser")
-        if "receparser.receparser.codes" not in sys.modules:
-            import types
-            sys.modules["receparser.receparser.codes"] = types.ModuleType("receparser.receparser.codes")
-        
-        # Load dpc_code
-        if os.path.exists(dpc_code_path):
-            dpc_spec = importlib.util.spec_from_file_location("receparser.receparser.codes.dpc_code", dpc_code_path)
-            dpc_module = importlib.util.module_from_spec(dpc_spec)
-            sys.modules["receparser.receparser.codes.dpc_code"] = dpc_module
-            dpc_spec.loader.exec_module(dpc_module)
-            # Make dpc_codes available in codes module
-            sys.modules["receparser.receparser.codes"].dpc_codes = dpc_module.dpc_codes
-        
-        # Load ika_code
-        if os.path.exists(ika_code_path):
-            ika_spec = importlib.util.spec_from_file_location("receparser.receparser.codes.ika_code", ika_code_path)
-            ika_module = importlib.util.module_from_spec(ika_spec)
-            sys.modules["receparser.receparser.codes.ika_code"] = ika_module
-            ika_spec.loader.exec_module(ika_module)
-            # Make ika_codes available in codes module
-            sys.modules["receparser.receparser.codes"].ika_codes = ika_module.ika_codes
-        
-        # Then load core module
-        core_path = os.path.join(receparser_receparser_path, "core.py")
-        if os.path.exists(core_path):
-            core_spec = importlib.util.spec_from_file_location("receparser.receparser.core", core_path)
-            core_module = importlib.util.module_from_spec(core_spec)
-            sys.modules["receparser.receparser.core"] = core_module
-            core_spec.loader.exec_module(core_module)
-            MonthlyRece = core_module.MonthlyRece
-        else:
-            raise ImportError(f"core.py not found at {core_path}")
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        receparser_path = os.path.join(app_dir, "receparser")
+        if receparser_path not in sys.path:
+            sys.path.insert(0, receparser_path)
+        from receparser.receparser import MonthlyRece
+    except ImportError as e:
+        st.error(f"receparserのインポートに失敗しました: {e}")
+        st.stop()
 
 # Helper function to get patient info from RE record
 def get_rece_info(rece):
@@ -204,7 +154,6 @@ if uploaded_file is not None:
                     display_df = filtered_df[['カルテ番号', 'レセプト番号', '氏名', 'カタカナ氏名', '生年月日', '男女区分', '診療年月']].copy()
                     st.dataframe(
                         display_df,
-                        width='stretch',
                         height=300,
                         hide_index=True
                     )
@@ -340,7 +289,7 @@ if uploaded_file is not None:
                                     df.columns = [str(col) if col is not None else '' for col in df.columns]
                                     
                                     # Display DataFrame
-                                    st.dataframe(df, width='stretch', height=400)
+                                    st.dataframe(df, height=400)
                                     
                                     # Download button
                                     csv = df.to_csv(index=False, encoding='utf-8-sig')
@@ -384,5 +333,3 @@ else:
     4. **レコードタイプを選択**: 表示したいレコードタイプ（RE, HO, SBなど）を選択します
     5. **データを確認**: テーブル形式でデータを確認し、必要に応じてCSVとしてダウンロードできます
 """)
-
-
