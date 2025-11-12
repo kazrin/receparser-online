@@ -39,7 +39,7 @@ if os.path.exists(receparser_parent_path):
 
 # Import from receparser.receparser (__init__.py exports MonthlyRece)
 try:
-    from receparser import MonthlyRece
+    from receparser.receparser import MonthlyRece
     print(f"[DEBUG] Successfully imported MonthlyRece")
 except ImportError as e:
     print(f"[DEBUG] ImportError: {e}")
