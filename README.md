@@ -142,6 +142,35 @@ receparser-online/
 - `japanera`パッケージはPyodideで利用可能な場合のみインストールされます。利用できない場合は、元号変換機能が制限される可能性があります
 - `receparser`ライブラリは`streamlit_app/receparser`配下に直接配置されており、デスクトップアプリ環境で自動的にインポートされます
 
+## カスタマイズ
+
+### アプリ名とアイコンの変更
+
+Macアプリの名前とアイコンを変更するには：
+
+1. **アプリ名の変更**
+   - `package.json`の`build.productName`を変更します
+   - 例: `"productName": "Receparser Online"`
+
+2. **アイコンの変更**
+   - Mac用のアイコンファイル（`.icns`形式）を準備します
+   - アイコンファイルを`assets/icon.icns`に配置します
+   - `.icns`ファイルの作成方法：
+     - 1024x1024ピクセルのPNG画像を用意
+     - `iconutil`コマンドで変換：
+       ```bash
+       mkdir icon.iconset
+       # 各サイズの画像をicon.iconsetに配置（icon_16x16.png, icon_32x32.pngなど）
+       iconutil -c icns icon.iconset -o assets/icon.icns
+       ```
+     - または、オンラインツール（例: https://cloudconvert.com/png-to-icns）を使用
+
+3. **ビルド**
+   ```bash
+   npm run dump streamlit_app
+   npm run dist -- --mac
+   ```
+
 ## ライセンス
 
 receparserライブラリはMITライセンスです。

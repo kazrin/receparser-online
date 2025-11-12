@@ -10,9 +10,14 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "build": {
+    "appId": "com.receparser.desktop",
+    "productName": "Receparser Desktop",
     "files": ["build/**/*"],
     "directories": {
       "buildResources": "assets"
+    },
+    "mac": {
+      "category": "public.app-category.utilities"
     }
   },
   "devDependencies": {
