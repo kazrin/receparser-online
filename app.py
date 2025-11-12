@@ -38,20 +38,80 @@ if os.path.exists(receparser_parent_path):
         print(f"[DEBUG] Error listing files: {e}")
 
 # Import from receparser.receparser (__init__.py exports MonthlyRece)
+# Since receparser/receparser/__init__.py uses 'from receparser.core import',
+# we need to ensure receparser package is properly recognized
 try:
     from receparser.receparser import MonthlyRece
-    print(f"[DEBUG] Successfully imported MonthlyRece")
+    print(f"[DEBUG] Successfully imported MonthlyRece from receparser.receparser")
 except ImportError as e:
-    print(f"[DEBUG] ImportError: {e}")
+    print(f"[DEBUG] ImportError from receparser.receparser: {e}")
     print(f"[DEBUG] Trying alternative import methods...")
-    # Try alternative import
+    
+    # Try importing directly from receparser.receparser.core
     try:
-        sys.path.insert(0, receparser_receparser_path)
-        from core import MonthlyRece
-        print(f"[DEBUG] Successfully imported from core directly")
+        from receparser.receparser.core import MonthlyRece
+        print(f"[DEBUG] Successfully imported MonthlyRece from receparser.receparser.core")
     except ImportError as e2:
-        print(f"[DEBUG] Alternative import also failed: {e2}")
-        raise
+        print(f"[DEBUG] ImportError from receparser.receparser.core: {e2}")
+        
+        # Try using importlib to load modules manually
+        try:
+            import importlib.util
+            
+            # First, load dpc_code and ika_code modules
+            dpc_code_path = os.path.join(receparser_receparser_path, "codes", "dpc_code.py")
+            ika_code_path = os.path.join(receparser_receparser_path, "codes", "ika_code.py")
+            
+            # Create parent modules in sys.modules
+            if "receparser" not in sys.modules:
+                import types
+                sys.modules["receparser"] = types.ModuleType("receparser")
+            if "receparser.receparser" not in sys.modules:
+                import types
+                sys.modules["receparser.receparser"] = types.ModuleType("receparser.receparser")
+            if "receparser.receparser.codes" not in sys.modules:
+                import types
+                sys.modules["receparser.receparser.codes"] = types.ModuleType("receparser.receparser.codes")
+            
+            # Load dpc_code
+            if os.path.exists(dpc_code_path):
+                print(f"[DEBUG] Loading dpc_code from: {dpc_code_path}")
+                dpc_spec = importlib.util.spec_from_file_location("receparser.receparser.codes.dpc_code", dpc_code_path)
+                dpc_module = importlib.util.module_from_spec(dpc_spec)
+                sys.modules["receparser.receparser.codes.dpc_code"] = dpc_module
+                dpc_spec.loader.exec_module(dpc_module)
+                # Make dpc_codes available in codes module
+                sys.modules["receparser.receparser.codes"].dpc_codes = dpc_module.dpc_codes
+                print(f"[DEBUG] Loaded dpc_code successfully")
+            
+            # Load ika_code
+            if os.path.exists(ika_code_path):
+                print(f"[DEBUG] Loading ika_code from: {ika_code_path}")
+                ika_spec = importlib.util.spec_from_file_location("receparser.receparser.codes.ika_code", ika_code_path)
+                ika_module = importlib.util.module_from_spec(ika_spec)
+                sys.modules["receparser.receparser.codes.ika_code"] = ika_module
+                ika_spec.loader.exec_module(ika_module)
+                # Make ika_codes available in codes module
+                sys.modules["receparser.receparser.codes"].ika_codes = ika_module.ika_codes
+                print(f"[DEBUG] Loaded ika_code successfully")
+            
+            # Then load core module
+            core_path = os.path.join(receparser_receparser_path, "core.py")
+            if os.path.exists(core_path):
+                print(f"[DEBUG] Loading core module from: {core_path}")
+                core_spec = importlib.util.spec_from_file_location("receparser.receparser.core", core_path)
+                core_module = importlib.util.module_from_spec(core_spec)
+                sys.modules["receparser.receparser.core"] = core_module
+                core_spec.loader.exec_module(core_module)
+                MonthlyRece = core_module.MonthlyRece
+                print(f"[DEBUG] Successfully loaded MonthlyRece using importlib")
+            else:
+                raise ImportError(f"core.py not found at {core_path}")
+        except Exception as e3:
+            print(f"[DEBUG] importlib method also failed: {e3}")
+            import traceback
+            print(f"[DEBUG] Traceback: {traceback.format_exc()}")
+            raise ImportError(f"All import methods failed. Last error: {e3}")
 
 # Helper function to get patient info from RE record
 def get_rece_info(rece):
